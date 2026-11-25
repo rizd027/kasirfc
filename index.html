@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="id" data-mode="terang">
+
+<head>
+  <script src="tema.js"></script>
+  <script>
+    /* Set mode dari TEMA.mode sebelum render (tanpa kedip). */
+    (function () {
+      var m = (window.TEMA && TEMA.mode) || 'terang';
+      if (m === 'auto') m = matchMedia('(prefers-color-scheme: dark)').matches ? 'gelap' : 'terang';
+      document.documentElement.setAttribute('data-mode', m);
+    })();
+  </script>
+  <link rel="stylesheet" href="tema.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kasir Fotocopy &amp; Percetakan</title>
+  <meta name="description"
+    content="Kasir offline untuk fotocopy & percetakan: hitung lembar warna/hitam-putih, sisi, jilid, laminasi, struk, laporan.">
+  <meta name="theme-color" content="#24578f">
+  <script>if (location.protocol !== 'file:') { var m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.webmanifest'; document.head.appendChild(m); }</script>
+  <link rel="icon" href="ikon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="ikon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link id="fontTema" rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Layar masuk -->
+  <section id="layarMasuk" class="masuk" hidden>
+    <div class="masuk-merek">
+      <div class="merek"><svg class="logo" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="var(--aksen)" />
+          <rect x="14" y="16" width="36" height="24" rx="4" fill="#fff" />
+          <rect x="19" y="21" width="16" height="4" rx="2" fill="var(--utama)" />
+          <rect x="19" y="29" width="26" height="3" rx="1.5" fill="color-mix(in srgb,var(--utama) 45%,#fff)" />
+          <path d="M20 44h24l3 6H17z" fill="#fff" />
+        </svg><span>Fotocopy</span></div>
+      <div class="masuk-ilus" id="masukIlus" aria-hidden="true"></div>
+      <p class="masuk-slogan">Hitung lembar cepat,<br>warna &amp; hitam-putih rapi, tanpa internet.</p>
+    </div>
+    <div class="masuk-form">
+      <div class="masuk-kartu">
+        <h1 id="masukToko" data-tema-nama>Kasir Fotocopy</h1>
+        <p class="redup">Pilih kasir, lalu masukkan PIN.</p>
+        <div id="daftarKasir" class="pilih-kasir" role="group" aria-label="Pilih kasir"></div>
+        <div class="pin-titik" id="pinTitik" aria-label="PIN 4 angka"><i></i><i></i><i></i><i></i></div>
+        <div class="pad" id="padPin"></div>
+        <p class="redup kecil">PIN contoh: Admin 1234 · Sari 1111</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="aplikasi" class="app" hidden>
+    <nav class="samping">
+      <div class="merek"><svg class="logo" viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="var(--utama)" />
+          <rect x="14" y="16" width="36" height="24" rx="4" fill="color-mix(in srgb,var(--utama) 18%,#fff)" />
+          <rect x="19" y="21" width="16" height="4" rx="2" fill="var(--utama)" />
+          <rect x="19" y="29" width="26" height="3" rx="1.5" fill="color-mix(in srgb,var(--utama) 55%,#fff)" />
+          <path d="M20 44h24l3 6H17z" fill="var(--aksen)" />
+        </svg><span id="namaTokoNav" data-tema-nama>Kasir Fotocopy</span></div>
+      <button class="nav aktif" data-hal="kasir"><svg viewBox="0 0 24 24">
+          <path d="M3 5h18v10H3zM7 19h10M12 15v4" />
+        </svg><span>Kasir</span></button>
+      <button class="nav" data-hal="produk"><svg viewBox="0 0 24 24">
+          <path d="M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10" />
+        </svg><span>Layanan</span></button>
+      <button class="nav" data-hal="riwayat"><svg viewBox="0 0 24 24">
+          <path d="M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" />
+        </svg><span>Riwayat</span></button>
+      <button class="nav" data-hal="laporan"><svg viewBox="0 0 24 24">
+          <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+        </svg><span>Laporan</span></button>
+      <button class="nav" data-hal="atur"><svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z" />
+        </svg><span>Atur</span></button>
+      <div class="pengguna">
+        <button id="btnPasang" class="nav-tema" type="button" hidden aria-label="Pasang aplikasi"
+          title="Pasang aplikasi (PWA)"><svg viewBox="0 0 24 24">
+            <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg></button>
+        <button id="btnTema" class="nav-tema" type="button" aria-label="Ganti mode terang/gelap"
+          title="Ganti mode terang/gelap"><svg viewBox="0 0 24 24">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+          </svg></button>
+        <span class="avatar" id="avatarKasir" aria-hidden="true">A</span><span id="namaKasir">-</span>
+        <button id="btnKeluar" class="tautan" aria-label="Keluar"><svg viewBox="0 0 24 24">
+            <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
+          </svg></button>
+      </div>
+    </nav>
+
+    <main>
+      <!-- KASIR -->
+      <section class="hal aktif" id="hal-kasir">
+        <div class="pos">
+          <div class="pos-kiri">
+            <header class="bar">
+              <div class="bar-judul">
+                <h2>Pilih layanan</h2>
+                <div class="bar-sub"><span class="redup kecil" id="tglHariIni"></span><button type="button" id="shiftIndikator" class="shift-pill" title="Buka atau tutup shift kasir"></button></div>
+              </div>
+              <div class="bar-aksi">
+                <div class="cari"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-4-4" />
+                  </svg><input id="cariProduk" type="search" placeholder="Cari layanan / barcode… (/)" aria-label="Cari produk"><button type="button" id="btnScanCam" class="cari-scan" title="Scan barcode kamera" aria-label="Scan barcode kamera"><svg viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M4 17v2a1 1 0 0 0 1 1h2M17 20h2a1 1 0 0 0 1-1v-2M7 9v6M11 9v6M15 9v6"/></svg></button></div>
+                <button class="hc-pemicu" id="btnHitung" type="button" title="Hitung cepat: halaman → lembar, warna/BW, bolak-balik, jilid, laminasi"><svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="3" width="14" height="18" rx="2" />
+                    <path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h2M12 18h4" />
+                  </svg><span>Hitung cepat</span></button>
+              </div>
+            </header>
+            <div class="chip-baris" id="chipKategori"></div>
+            <div class="grid-produk" id="gridProduk"></div>
+          </div>
+          <aside class="keranjang" id="panelKeranjang">
+            <header class="ker-kepala">
+              <div>
+                <h2>Pesanan <span id="kerNomor" class="nomor">#0001</span></h2><span class="redup kecil"
+                  id="kerJumlah">0 item</span>
+              </div>
+              <button class="tautan" id="btnKosongkan"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+                </svg>Kosongkan</button>
+            </header>
+            <div class="ker-alat">
+              <input id="inPelanggan" class="ker-pelanggan" type="text" placeholder="Pelanggan / catatan…"
+                aria-label="Nama pelanggan atau catatan">
+              <button class="btn-tahan" id="btnPelanggan" type="button" title="Pilih atau kelola pelanggan tetap">Member</button>
+              <button class="btn-tahan" id="btnBiaya" type="button" title="Tambah biaya desain, edit, atau ongkir">+ Biaya</button>
+              <button class="btn-tahan" id="btnTahan" type="button" title="Tahan atau panggil pesanan">Tahan <span
+                  class="badge" id="badgeTahan" hidden>0</span></button>
+            </div>
+            <ul class="ker-daftar" id="kerDaftar"></ul>
+            <div class="ker-lembar" id="kerLembar"></div>
+            <div class="ker-ringkas">
+              <div class="baris"><span>Subtotal</span><b id="kSubtotal">Rp0</b></div>
+              <div class="baris diskon" id="kDiskonBaris">
+                <span>Diskon</span>
+                <span class="diskon-input">
+                  <input id="inDiskon" type="number" min="0" inputmode="numeric" value="0" aria-label="Nilai diskon">
+                  <select id="tipeDiskon" aria-label="Tipe diskon">
+                    <option value="rp">Rp</option>
+                    <option value="persen">%</option>
+                  </select>
+                </span>
+              </div>
+              <div class="baris total"><span>Total</span><b id="kTotal">Rp0</b></div>
+              <button class="tombol utama besar" id="btnBayar" disabled><span>Bayar <kbd class="kbd-hint">F9</kbd></span><svg viewBox="0 0 24 24"
+                  aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg></button>
+            </div>
+          </aside>
+          <button class="fab-keranjang" id="fabKeranjang"><span class="fab-n"><span id="fabJumlah">0</span>
+              item</span><b id="fabTotal">Rp0</b><span class="fab-lihat">Lihat pesanan</span></button>
+        </div>
+      </section>
+
+      <!-- PRODUK -->
+      <section class="hal" id="hal-produk">
+        <header class="hal-kepala">
+          <h2>Layanan &amp; Stok</h2>
+          <div class="aksi">
+            <div class="alat-stok-wrap">
+              <button class="tombol" id="btnAlatStok" type="button" aria-expanded="false">Alat stok <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="m6 9 6 6 6-6"/></svg></button>
+              <div class="dd-menu alat-menu" id="menuAlatStok" hidden>
+                <button class="dd-opt" id="btnStokKertas" type="button">Stok kertas (A4/F4)</button>
+                <button class="dd-opt" id="btnOpname" type="button">Stock opname cepat</button>
+                <button class="dd-opt" id="btnKategori" type="button">Kelola kategori</button>
+              </div>
+            </div>
+            <button class="tombol utama" id="btnTambahProduk">+ Layanan</button>
+          </div>
+        </header>
+        <div id="stokInfoBar" class="stok-info-bar"></div>
+        <div class="filter-baris">
+          <input id="cariKelola" type="search" placeholder="Cari nama produk…" class="cari-lebar"
+            aria-label="Cari nama produk">
+          <select id="filterKatProduk" aria-label="Filter kategori">
+            <option value="">Semua kategori</option>
+          </select>
+        </div>
+        <div class="tabel-bungkus">
+          <table class="tabel" id="tabelProduk"></table>
+        </div>
+      </section>
+
+      <!-- RIWAYAT -->
+      <section class="hal" id="hal-riwayat">
+        <header class="hal-kepala">
+          <h2>Riwayat Transaksi</h2>
+          <div class="aksi wrap">
+            <input type="date" id="filterTanggal" aria-label="Filter tanggal">
+            <button class="tombol" id="btnHariIniTrx" type="button">Hari ini</button>
+            <button class="tombol" id="btnResetTgl" type="button">Semua</button>
+            <button class="tombol" id="btnEksporTrx" type="button">Ekspor CSV</button>
+            <button class="tombol bahaya" id="btnHapusSemuaTrx" type="button">Hapus semua</button>
+          </div>
+        </header>
+        <div class="filter-baris">
+          <input id="cariRiwayat" type="search" placeholder="Cari no. struk, pelanggan, atau kasir…" class="cari-lebar"
+            aria-label="Cari transaksi">
+          <select id="filterMetode" aria-label="Filter metode bayar">
+            <option value="">Semua metode</option>
+            <option value="tunai">Tunai</option>
+            <option value="qris">QRIS</option>
+            <option value="transfer">Transfer</option>
+            <option value="campuran">Campuran</option>
+          </select>
+          <select id="filterStatus" aria-label="Filter status order">
+            <option value="">Semua status</option>
+            <option value="antre">Antre</option>
+            <option value="proses">Proses</option>
+            <option value="siap">Siap ambil</option>
+            <option value="dp">Belum lunas (DP)</option>
+            <option value="selesai">Selesai</option>
+          </select>
+        </div>
+        <div class="riwayat-bar" id="riwayatBar">
+          <div class="riwayat-info">
+            <label class="cek-semua"><input type="checkbox" id="cekSemuaTrx"><span>Pilih semua</span></label>
+            <span class="redup kecil" id="riwayatRingkas"></span>
+          </div>
+          <div class="aksi wrap" id="riwayatAksiBanyak" hidden>
+            <button class="tombol" id="btnEksporTerpilih" type="button">Ekspor terpilih</button>
+            <button class="tombol bahaya" id="btnHapusTerpilih" type="button">Hapus terpilih (<span id="nTerpilih">0</span>)</button>
+          </div>
+        </div>
+        <div class="daftar-trx" id="daftarTrx"></div>
+      </section>
+
+      <!-- LAPORAN -->
+      <section class="hal" id="hal-laporan">
+        <header class="hal-kepala">
+          <h2>Laporan &amp; Keuangan</h2>
+          <div class="aksi wrap">
+            <button class="tombol" id="btnShift" type="button">Shift kasir</button>
+            <button class="tombol" id="btnCounter" type="button">Counter mesin</button>
+            <button class="tombol" id="btnPengeluaran" type="button">+ Pengeluaran</button>
+            <div class="aksi segmen" id="segLaporan">
+              <button data-mode="hari" class="aktif">Harian</button>
+              <button data-mode="bulan">Bulanan</button>
+            </div>
+            <button class="tombol" id="btnEksporLaporan" type="button">Ekspor CSV</button>
+          </div>
+        </header>
+        <input type="date" id="tglLaporan" class="cari-lebar" aria-label="Tanggal laporan">
+        <div class="kartu-angka" id="kartuAngka"></div>
+        <div class="dua-kolom">
+          <div class="panel">
+            <h3 id="judulGrafik">Penjualan per jam</h3>
+            <div id="grafik" class="grafik"></div>
+          </div>
+          <div class="panel">
+            <h3>Layanan terlaris</h3>
+            <ol id="terlaris" class="terlaris"></ol>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Lembar hitam-putih vs warna</h3>
+          <div id="rekapLembar" class="rekap-lembar"></div>
+        </div>
+        <div class="panel">
+          <h3>Metode bayar</h3>
+          <div id="metodeRingkas" class="metode-ringkas"></div>
+        </div>
+        <div class="dua-kolom">
+          <div class="panel">
+            <h3>Rekap per kasir</h3>
+            <ul id="rekapKasir" class="daftar-kasir"></ul>
+          </div>
+          <div class="panel">
+            <h3>Pengeluaran / kas keluar</h3>
+            <ul id="daftarPengeluaran" class="daftar-kasir"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- PENGATURAN -->
+      <section class="hal" id="hal-atur">
+        <header class="hal-kepala">
+          <h2>Pengaturan</h2>
+        </header>
+        <div class="dua-kolom">
+          <form class="panel form" id="formToko">
+            <h3>Profil usaha (untuk struk)</h3>
+            <div class="foto-baris">
+              <span class="thumb foto-pratinjau" id="logoTokoPra"></span>
+              <div class="aksi wrap">
+                <label class="tombol" style="color:var(--teks)">Upload logo toko<input id="fLogoToko" type="file" accept="image/*" hidden></label>
+                <button type="button" class="tautan" id="fLogoHapus">Hapus</button>
+              </div>
+            </div>
+            <label>Nama toko<input name="nama" required></label>
+            <label>Alamat<input name="alamat"></label>
+            <label>Telepon<input name="telp"></label>
+            <label>Catatan kaki struk<input name="footer"></label>
+            <label>Nama bank &amp; no. rekening (transfer)<input name="rekening"></label>
+            <button class="tombol utama">Simpan</button>
+          </form>
+          <div class="panel">
+            <h3>Kasir &amp; PIN</h3>
+            <ul class="daftar-kasir" id="daftarKasirAtur"></ul>
+            <form class="form sebaris" id="formKasir">
+              <input name="nama" placeholder="Nama" required>
+              <input name="pin" placeholder="PIN 4 angka" pattern="\d{4}" inputmode="numeric" maxlength="4" required>
+              <select name="peran">
+                <option value="kasir">Kasir</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button class="tombol">Tambah</button>
+            </form>
+            <p class="redup kecil">Kasir biasa tidak bisa mengubah produk, pengaturan, dan menghapus transaksi.</p>
+          </div>
+        </div>
+        <form class="panel form" id="formTarif">
+          <h3>Tarif hitung cepat (per lembar)</h3>
+          <div id="tarifIsi"></div>
+          <button class="tombol utama">Simpan tarif</button>
+        </form>
+        <div class="dua-kolom">
+          <form class="panel form" id="formAturan">
+            <h3>Operasional &amp; struk lanjutan</h3>
+            <label>Pembulatan tunai
+              <select name="pembulatan">
+                <option value="0">Tanpa pembulatan</option>
+                <option value="100">Kelipatan Rp100</option>
+                <option value="500">Kelipatan Rp500</option>
+              </select>
+            </label>
+            <label>Ukuran cetak default
+              <select name="ukuranStruk">
+                <option value="58mm">Thermal 58mm</option>
+                <option value="80mm">Thermal 80mm</option>
+              </select>
+            </label>
+            <label>Batas peringatan stok menipis<input name="batasStok" type="number" min="1" value="5"></label>
+            <label>Kunci layar otomatis (Auto-lock)
+              <select name="autoLock">
+                <option value="0">Nonaktif</option>
+                <option value="5">5 menit tidak aktif</option>
+                <option value="10">10 menit tidak aktif</option>
+                <option value="30">30 menit tidak aktif</option>
+              </select>
+            </label>
+            <label>String QRIS Statis (opsional, untuk QRIS dinamis)<input name="qrisStatis" placeholder="000201010211..."></label>
+            <button class="tombol utama">Simpan aturan</button>
+          </form>
+          <div class="panel">
+            <h3>Log aktivitas admin</h3>
+            <ul class="daftar-kasir log-audit" id="daftarAudit"></ul>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Data &amp; Penyimpanan</h3>
+          <p class="redup kecil" id="storageMeter" style="margin-top:-6px;margin-bottom:12px"></p>
+          <div class="aksi wrap">
+            <button class="tombol" id="btnBackup">Backup JSON</button>
+            <label class="tombol" style="color:var(--teks)">Pulihkan JSON<input type="file" id="fileBackup" accept=".json,application/json"
+                hidden></label>
+            <button class="tombol" id="btnEksporProduk">Ekspor produk CSV</button>
+            <label class="tombol" style="color:var(--teks)">Impor produk CSV<input type="file" id="fileCsv" accept=".csv,text/csv" hidden></label>
+            <button class="tombol" id="btnArsipTrx" type="button">Bersihkan trx &gt; 90 hari</button>
+            <button class="tombol" id="btnContoh">Isi data contoh</button>
+            <button class="tombol bahaya" id="btnReset">Hapus semua data</button>
+          </div>
+          <p class="redup kecil">Format CSV produk: <code>nama,kategori,stok,varian,modal,barcode,grosir,favorit</code> (varian:
+            <code>BW 1 sisi:300|Warna 1 sisi:1500</code>; stok -1 = jasa). Data tersimpan lokal di perangkat ini.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Sinkronisasi Google Sheets (GAS)</h3>
+          <p class="redup kecil" style="margin-top:-6px;margin-bottom:14px">Simpan &amp; sinkronkan database produk, transaksi, pelanggan, pengeluaran, dan pengaturan ke Google Spreadsheet via Google Apps Script Web App.</p>
+          <form id="formGas" class="form">
+            <label>URL Web App GAS
+              <input id="gasUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+            </label>
+            <label class="cek-semua" style="font-weight:500">
+              <input type="checkbox" id="gasAuto" style="width:18px;height:18px;margin:0;flex:none">
+              <span>Kirim transaksi baru otomatis ke Spreadsheet setelah bayar</span>
+            </label>
+            <div class="aksi wrap">
+              <button class="tombol utama" type="submit">Simpan Pengaturan GAS</button>
+              <button class="tombol" id="btnGasPush" type="button">Kirim Semua ke Sheets (Push)</button>
+              <button class="tombol" id="btnGasPull" type="button">Ambil dari Sheets (Pull)</button>
+              <button class="tombol" id="btnGasKode" type="button">Lihat Kode Apps Script</button>
+            </div>
+            <p class="redup kecil" id="gasStatus" style="margin:2px 0 0"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bawah" id="navBawah"></nav>
+  </div>
+
+  <!-- Dialog -->
+  <dialog id="dlg">
+    <form method="dialog" id="dlgIsi"></form>
+  </dialog>
+
+  <!-- Struk cetak -->
+  <div id="struk" class="struk" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
