@@ -8,8 +8,37 @@
     fotoProduk: {}                       // foto produk contoh per nama, mis. { 'Mie Goreng': 'img/mie.jpg' }
   };
 
-  // ---------- Penyimpanan (localStorage, offline) ----------
+  // ---------- Penyimpanan (localStorage, offline, terpisah per akun) ----------
+  var KUNCI_AKUN = 'kasir-fotocopy-akun-v1';
+  var akunAktifId = 'default';
   var KUNCI = 'kasir-fotocopy-v1', KUNCI_PL = 'kasir-fotocopy-pelanggan-v1';
+  function hashSandi(teks, garam) {
+    var s = (garam || '') + ':' + String(teks || '');
+    var h1 = 0x811c9dc5, h2 = 5381;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      h1 ^= c; h1 = Math.imul(h1, 0x01000193);
+      h2 = Math.imul(h2, 33) ^ c;
+    }
+    return ((h1 >>> 0).toString(16).padStart(8, '0')) + ((h2 >>> 0).toString(16).padStart(8, '0'));
+  }
+  function muatAkunReg() {
+    var reg = null;
+    try { reg = JSON.parse(localStorage.getItem(KUNCI_AKUN)); } catch (e) { reg = null; }
+    if (!reg || !Array.isArray(reg.daftar) || !reg.daftar.length) {
+      reg = { aktif: 'default', daftar: [{ id: 'default', username: 'utama', nama: NAMA_TEMA || 'Utama', salt: '', hash: '' }] };
+      simpanAkunReg(reg);
+    }
+    return reg;
+  }
+  function simpanAkunReg(reg) {
+    try { localStorage.setItem(KUNCI_AKUN, JSON.stringify(reg)); } catch (e) { }
+  }
+  function setKunciAkun(id) {
+    akunAktifId = id || 'default';
+    KUNCI = akunAktifId === 'default' ? 'kasir-fotocopy-v1' : 'kasir-fotocopy-v1-' + akunAktifId;
+    KUNCI_PL = akunAktifId === 'default' ? 'kasir-fotocopy-pelanggan-v1' : 'kasir-fotocopy-pelanggan-v1-' + akunAktifId;
+  }
   var NAMA_TEMA = (window.TEMA && TEMA.nama) || 'Fotocopy Berkah';
 
   function dataKosong() {
@@ -88,7 +117,7 @@
   function tanpaStok(p) { return p.stok < 0; }
   var D;
   function aturanBawaan() {
-    return { pembulatan: 0, ukuranStruk: '58mm', batasStok: 5, qrisStatis: '', kertasA4: 2500, kertasF4: 2500, lastBackup: 0, autoLock: 0, gasUrl: 'https://script.google.com/macros/s/AKfycbzFSs71kkSI8dG4hIWNNFM86wXxYfGw0gWb9-sCVPdhgOaM0oRTm8k_7XFGUnrb56rL/exec', gasAuto: true, gasLastSync: 0 };
+    return { pembulatan: 0, ukuranStruk: '58mm', batasStok: 5, qrisStatis: '', kertasA4: 2500, kertasF4: 2500, lastBackup: 0, autoLock: 0, gasUrl: '', gasAuto: false, gasLastSync: 0 };
   }
   function simpanPelanggan() {
     try { localStorage.setItem(KUNCI_PL, JSON.stringify(D.pelanggan || [])); }
@@ -113,7 +142,12 @@
     if (!D.shift || typeof D.shift !== 'object') D.shift = { aktif: null, riwayat: [] };
     if (!Array.isArray(D.counter)) D.counter = [];
     if (!Array.isArray(D.audit)) D.audit = [];
+    var gasBelumDiset = !D.aturan || D.aturan.gasUrl === undefined;
     D.aturan = Object.assign(aturanBawaan(), D.aturan || {});
+    if (akunAktifId === 'default' && gasBelumDiset) {
+      D.aturan.gasUrl = 'https://script.google.com/macros/s/AKfycbzFSs71kkSI8dG4hIWNNFM86wXxYfGw0gWb9-sCVPdhgOaM0oRTm8k_7XFGUnrb56rL/exec';
+      D.aturan.gasAuto = true;
+    }
     if (!D.aturan.foto10Migrated) {
       var pf = D.produk.find(function (x) { return /cetak (pas )?foto/i.test(x.nama); });
       var baru10 = [
@@ -555,6 +589,11 @@
   function tampilMasuk() {
     $('#aplikasi').hidden = true; $('#layarMasuk').hidden = false;
     $('#masukToko').textContent = D.toko.nama;
+    var reg = muatAkunReg();
+    var acc = reg.daftar.find(function (a) { return a.id === akunAktifId; }) || reg.daftar[0];
+    if ($('#akunLabel') && acc) $('#akunLabel').textContent = acc.nama + ' (@' + acc.username + ')';
+    var ph = $('#pinHint');
+    if (ph) ph.hidden = akunAktifId !== 'default';
     var mi = $('#masukIlus'); if (mi) mi.innerHTML = D.produk.slice(0, 6).map(function (p, n) { return '<span class="thumb" data-nada="' + nadaDari(p.kategori + p.nama) + '" style="--i:' + n + '">' + ilustrasi(p) + '</span>'; }).join('');
     kasirDipilih = D.kasir[0]; pinBuffer = '';
     $('#daftarKasir').innerHTML = D.kasir.map(function (k) { return '<button data-id="' + k.id + '">' + esc(k.nama) + '</button>'; }).join('');
@@ -2263,7 +2302,122 @@
       });
     };
     if ($('#btnGasKode')) $('#btnGasKode').onclick = dialogKodeGas;
+    if ($('#btnBuatAkun')) $('#btnBuatAkun').onclick = dialogBuatAkun;
+    if ($('#btnGantiAkun')) $('#btnGantiAkun').onclick = dialogGantiAkun;
+    if ($('#btnSandiAkun')) $('#btnSandiAkun').onclick = dialogSandiAkun;
     tingkatkanDropdown(document);
+  }
+
+  // ---------- Multi-Akun (Database Terpisah per User) ----------
+  function dialogBuatAkun() {
+    dialog('<h3>Buat akun &amp; database baru</h3>' +
+      '<p class="redup kecil">Setiap akun memiliki database produk, transaksi, pelanggan, dan pengaturan Google Sheets yang terpisah.</p>' +
+      '<form id="formBuatAkun" class="form">' +
+      '<label>Nama Usaha / Toko<input name="nama" required placeholder="Mis. Fotocopy Maju Jaya"></label>' +
+      '<label>Username Akun<input name="username" required pattern="[a-zA-Z0-9_-]{3,24}" placeholder="Mis. majujaya (huruf/angka, min 3)"></label>' +
+      '<label>Password Akun (untuk keamanan ganti akun)<input name="sandi" type="password" minlength="4" required placeholder="Minimal 4 karakter"></label>' +
+      '<label>PIN Admin (4 angka)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" value="1234" required></label>' +
+      '<label class="cek-semua" style="font-weight:500"><input type="checkbox" name="contoh" checked style="width:18px;height:18px;margin:0;flex:none"><span>Isi contoh layanan fotocopy siap pakai</span></label>' +
+      '<div class="dlg-aksi"><button class="tombol" type="button" value="batal">Batal</button><button class="tombol utama" type="submit">Buat Akun &amp; Masuk</button></div>' +
+      '</form>', function (f) {
+        $('#formBuatAkun', f).onsubmit = function (e) {
+          e.preventDefault();
+          var fd = e.target;
+          var nama = fd.nama.value.trim();
+          var user = fd.username.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          var sandi = fd.sandi.value;
+          var pin = fd.pin.value.trim();
+          if (user.length < 3) return toast('Username minimal 3 huruf/angka');
+          if (sandi.length < 4) return toast('Password minimal 4 karakter');
+          if (!/^\d{4}$/.test(pin)) return toast('PIN harus 4 angka');
+          var reg = muatAkunReg();
+          if (reg.daftar.some(function (a) { return a.username === user; })) return toast('Username sudah dipakai');
+          var id = 'u_' + Date.now().toString(36);
+          var salt = Math.random().toString(36).slice(2, 10);
+          reg.daftar.push({ id: id, username: user, nama: nama, salt: salt, hash: hashSandi(sandi, salt) });
+          reg.aktif = id;
+          simpanAkunReg(reg);
+          setKunciAkun(id);
+          D = fd.contoh.checked ? dataContoh() : dataKosong();
+          D.toko.nama = nama; D.toko.namaDariTema = false;
+          D.kasir = [{ id: 'k1', nama: 'Admin', pin: pin, peran: 'admin' }];
+          D.aturan = aturanBawaan();
+          simpan(); simpanPelanggan();
+          tutupDialog(); pasangLogo(true);
+          toast('Akun @' + user + ' dibuat dengan database baru');
+          masuk(D.kasir[0]);
+        };
+      });
+  }
+  function dialogGantiAkun() {
+    var reg = muatAkunReg();
+    dialog('<h3>Pilih akun / database</h3>' +
+      '<p class="redup kecil">Pilih akun untuk berpindah database. Akun berpassword akan meminta verifikasi sandi.</p>' +
+      '<ul class="trx-detail-list" id="listAkun">' + reg.daftar.map(function (a) {
+        var aktif = a.id === akunAktifId;
+        return '<li style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+          '<span><b>' + esc(a.nama) + '</b> <span class="redup kecil">@' + esc(a.username) + '</span>' + (a.hash ? ' <span class="lencana">Terkunci</span>' : '') + '</span>' +
+          (aktif ? '<span class="lencana biru">Aktif</span>' : '<button class="tombol kecil" type="button" data-pindah="' + a.id + '">Masuk</button>') +
+          '</li>';
+      }).join('') + '</ul>' +
+      '<div id="boxSandiAkun" hidden class="form" style="margin-top:12px">' +
+      '<label>Masukkan Password untuk <b id="namaAkunTarget"></b><input id="inSandiPindah" type="password" placeholder="Password akun"></label>' +
+      '<div class="dlg-aksi"><button class="tombol utama" type="button" id="btnVerifPindah">Buka Database</button></div>' +
+      '</div>' +
+      '<div class="dlg-aksi"><button class="tombol" value="ok">Tutup</button></div>', function (f) {
+        var targetAcc = null;
+        function aktifkanAkun(acc) {
+          reg.aktif = acc.id; simpanAkunReg(reg);
+          setKunciAkun(acc.id);
+          pengguna = null; keranjang = [];
+          try { sessionStorage.removeItem('kasir-sesi'); } catch (e) { }
+          muat(); pasangLogo(true); tutupDialog(); tampilMasuk();
+          toast('Berpindah ke database ' + acc.nama);
+        }
+        $$('[data-pindah]', f).forEach(function (b) {
+          b.onclick = function () {
+            var acc = reg.daftar.find(function (a) { return a.id === b.dataset.pindah; });
+            if (!acc) return;
+            if (!acc.hash) return aktifkanAkun(acc);
+            targetAcc = acc;
+            $('#namaAkunTarget', f).textContent = acc.nama + ' (@' + acc.username + ')';
+            $('#boxSandiAkun', f).hidden = false;
+            $('#inSandiPindah', f).value = '';
+            $('#inSandiPindah', f).focus();
+          };
+        });
+        if ($('#btnVerifPindah', f)) $('#btnVerifPindah', f).onclick = function () {
+          if (!targetAcc) return;
+          var pw = $('#inSandiPindah', f).value;
+          if (hashSandi(pw, targetAcc.salt) !== targetAcc.hash) return toast('Password akun salah');
+          aktifkanAkun(targetAcc);
+        };
+      });
+  }
+  function dialogSandiAkun() {
+    var reg = muatAkunReg();
+    var acc = reg.daftar.find(function (a) { return a.id === akunAktifId; });
+    if (!acc) return;
+    dialog('<h3>Keamanan Password Akun</h3>' +
+      '<p class="redup kecil">Password ini melindungi database <b>' + esc(acc.nama) + ' (@' + esc(acc.username) + ')</b> saat orang lain mencoba berpindah akun.</p>' +
+      '<form id="formSandiAkun" class="form">' +
+      (acc.hash ? '<label>Password lama<input name="lama" type="password" required></label>' : '') +
+      '<label>Password baru (min 4 karakter)<input name="baru" type="password" minlength="4" required></label>' +
+      '<div class="dlg-aksi"><button class="tombol" type="button" value="batal">Batal</button><button class="tombol utama" type="submit">Simpan Password</button></div>' +
+      '</form>', function (f) {
+        $('#formSandiAkun', f).onsubmit = function (e) {
+          e.preventDefault();
+          var fd = e.target;
+          if (acc.hash && hashSandi(fd.lama.value, acc.salt) !== acc.hash) return toast('Password lama salah');
+          var baru = fd.baru.value;
+          if (baru.length < 4) return toast('Password minimal 4 karakter');
+          acc.salt = Math.random().toString(36).slice(2, 10);
+          acc.hash = hashSandi(baru, acc.salt);
+          acc.nama = D.toko.nama || acc.nama;
+          simpanAkunReg(reg); tutupDialog();
+          toast('Password akun diperbarui');
+        };
+      });
   }
 
   // ---------- Sinkronisasi Google Sheets (GAS) ----------
@@ -2318,6 +2472,7 @@
   }
 
   // ---------- Mulai ----------
+  setKunciAkun(muatAkunReg().aktif);
   muat(); ikatEvent(); pasangLogo();
   var sesi = null; try { sesi = sessionStorage.getItem('kasir-sesi'); } catch (e) { }
   var k = sesi && D.kasir.find(function (x) { return x.id === sesi; });

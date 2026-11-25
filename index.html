@@ -46,11 +46,18 @@
     <div class="masuk-form">
       <div class="masuk-kartu">
         <h1 id="masukToko" data-tema-nama>Kasir Fotocopy</h1>
+        <div class="akun-bar" id="akunBar">
+          <span class="kecil redup">Database: <b id="akunLabel">Utama</b></span>
+          <div class="aksi" style="gap:6px">
+            <button class="tombol kecil" type="button" id="btnGantiAkun">Ganti Akun</button>
+            <button class="tombol kecil utama" type="button" id="btnBuatAkun">+ Buat Akun</button>
+          </div>
+        </div>
         <p class="redup">Pilih kasir, lalu masukkan PIN.</p>
         <div id="daftarKasir" class="pilih-kasir" role="group" aria-label="Pilih kasir"></div>
         <div class="pin-titik" id="pinTitik" aria-label="PIN 4 angka"><i></i><i></i><i></i><i></i></div>
         <div class="pad" id="padPin"></div>
-        <p class="redup kecil">PIN contoh: Admin 1234 · Sari 1111</p>
+        <p class="redup kecil" id="pinHint">PIN contoh: Admin 1234 · Sari 1111</p>
       </div>
     </div>
   </section>
@@ -370,6 +377,7 @@
             <button class="tombol" id="btnEksporProduk">Ekspor produk CSV</button>
             <label class="tombol" style="color:var(--teks)">Impor produk CSV<input type="file" id="fileCsv" accept=".csv,text/csv" hidden></label>
             <button class="tombol" id="btnArsipTrx" type="button">Bersihkan trx &gt; 90 hari</button>
+            <button class="tombol" id="btnSandiAkun" type="button">Sandi Akun</button>
             <button class="tombol" id="btnContoh">Isi data contoh</button>
             <button class="tombol bahaya" id="btnReset">Hapus semua data</button>
           </div>

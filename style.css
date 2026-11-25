@@ -3573,3 +3573,22 @@ dialog:has(#plList) {
     text-align: center
   }
 }
+
+.akun-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--garis);
+  background: var(--kertas2)
+}
+
+.tombol.kecil {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 12px
+}
