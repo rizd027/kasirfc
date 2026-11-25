@@ -593,14 +593,11 @@
     var acc = reg.daftar.find(function (a) { return a.id === akunAktifId; }) || reg.daftar[0];
     if ($('#akunLabel') && acc) $('#akunLabel').textContent = acc.nama + ' (@' + acc.username + ')';
     var ph = $('#pinHint');
-    if (ph) ph.hidden = akunAktifId !== 'default';
+    if (ph) ph.hidden = true;
     var mi = $('#masukIlus'); if (mi) mi.innerHTML = D.produk.slice(0, 6).map(function (p, n) { return '<span class="thumb" data-nada="' + nadaDari(p.kategori + p.nama) + '" style="--i:' + n + '">' + ilustrasi(p) + '</span>'; }).join('');
-    kasirDipilih = D.kasir[0]; pinBuffer = '';
-    $('#daftarKasir').innerHTML = D.kasir.map(function (k) { return '<button data-id="' + k.id + '">' + esc(k.nama) + '</button>'; }).join('');
-    $$('#daftarKasir button').forEach(function (b) {
-      b.classList.toggle('aktif', b.dataset.id === kasirDipilih.id);
-      b.onclick = function () { kasirDipilih = D.kasir.find(function (k) { return k.id === b.dataset.id; }); pinBuffer = ''; tampilMasuk.titik(); $$('#daftarKasir button').forEach(function (x) { x.classList.toggle('aktif', x === b); }); };
-    });
+    kasirDipilih = null; pinBuffer = '';
+    var dk = $('#daftarKasir');
+    if (dk) { dk.innerHTML = ''; dk.hidden = true; }
     tampilMasuk.titik();
   }
   tampilMasuk.titik = function () { $$('#pinTitik i').forEach(function (i, n) { i.classList.toggle('isi', n < pinBuffer.length); }); };
@@ -609,7 +606,8 @@
     else if (pinBuffer.length < 4) pinBuffer += k;
     tampilMasuk.titik();
     if (pinBuffer.length === 4) {
-      if (kasirDipilih && kasirDipilih.pin === pinBuffer) { masuk(kasirDipilih); }
+      var cocok = D.kasir.find(function (x) { return x.pin === pinBuffer; });
+      if (cocok) { masuk(cocok); }
       else { var t = $('#pinTitik'); t.classList.add('salah'); setTimeout(function () { t.classList.remove('salah'); pinBuffer = ''; tampilMasuk.titik(); }, 350); }
     }
   }
