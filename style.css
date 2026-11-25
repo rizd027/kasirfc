@@ -279,6 +279,10 @@ code {
 input[type=search],
 input[type=date],
 input[type=number],
+input[type=password],
+input[type=url],
+input[type=email],
+input[type=tel],
 input:not([type]),
 input[type=text],
 select {

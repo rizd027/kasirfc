@@ -2310,21 +2310,20 @@
   function dialogBuatAkun() {
     dialog('<h3>Buat akun &amp; database baru</h3>' +
       '<p class="redup kecil">Setiap akun memiliki database produk, transaksi, pelanggan, dan pengaturan Google Sheets yang terpisah.</p>' +
-      '<form id="formBuatAkun" class="form">' +
-      '<label>Nama Usaha / Toko<input name="nama" required placeholder="Mis. Fotocopy Maju Jaya"></label>' +
-      '<label>Username Akun<input name="username" required pattern="[a-zA-Z0-9_-]{3,24}" placeholder="Mis. majujaya (huruf/angka, min 3)"></label>' +
-      '<label>Password Akun (untuk keamanan ganti akun)<input name="sandi" type="password" minlength="4" required placeholder="Minimal 4 karakter"></label>' +
-      '<label>PIN Admin (4 angka)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" value="1234" required></label>' +
-      '<label class="cek-semua" style="font-weight:500"><input type="checkbox" name="contoh" checked style="width:18px;height:18px;margin:0;flex:none"><span>Isi contoh layanan fotocopy siap pakai</span></label>' +
-      '<div class="dlg-aksi"><button class="tombol" type="button" value="batal">Batal</button><button class="tombol utama" type="submit">Buat Akun &amp; Masuk</button></div>' +
-      '</form>', function (f) {
-        $('#formBuatAkun', f).onsubmit = function (e) {
-          e.preventDefault();
-          var fd = e.target;
-          var nama = fd.nama.value.trim();
-          var user = fd.username.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-          var sandi = fd.sandi.value;
-          var pin = fd.pin.value.trim();
+      '<div class="form" id="formBuatAkun">' +
+      '<label>Nama Usaha / Toko<input id="baNama" required placeholder="Mis. Fotocopy Maju Jaya"></label>' +
+      '<label>Username Akun<input id="baUser" required placeholder="Mis. majujaya (huruf/angka, min 3)"></label>' +
+      '<label>Password Akun (untuk keamanan ganti akun)<input id="baSandi" type="password" required placeholder="Minimal 4 karakter"></label>' +
+      '<label>PIN Admin (4 angka)<input id="baPin" type="password" inputmode="numeric" maxlength="4" value="1234" required></label>' +
+      '<label class="cek-semua" style="font-weight:500"><input type="checkbox" id="baContoh" checked style="width:18px;height:18px;margin:0;flex:none"><span>Isi contoh layanan fotocopy siap pakai</span></label>' +
+      '</div>' +
+      '<div class="dlg-aksi"><button class="tombol" value="batal">Batal</button><button class="tombol utama" type="button" id="btnBaOk">Buat Akun &amp; Masuk</button></div>', function (f) {
+        function simpanAkunBaru() {
+          var nama = $('#baNama', f).value.trim();
+          var user = $('#baUser', f).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          var sandi = $('#baSandi', f).value;
+          var pin = $('#baPin', f).value.trim();
+          if (!nama) return toast('Isi nama usaha / toko');
           if (user.length < 3) return toast('Username minimal 3 huruf/angka');
           if (sandi.length < 4) return toast('Password minimal 4 karakter');
           if (!/^\d{4}$/.test(pin)) return toast('PIN harus 4 angka');
@@ -2336,7 +2335,7 @@
           reg.aktif = id;
           simpanAkunReg(reg);
           setKunciAkun(id);
-          D = fd.contoh.checked ? dataContoh() : dataKosong();
+          D = $('#baContoh', f).checked ? dataContoh() : dataKosong();
           D.toko.nama = nama; D.toko.namaDariTema = false;
           D.kasir = [{ id: 'k1', nama: 'Admin', pin: pin, peran: 'admin' }];
           D.aturan = aturanBawaan();
@@ -2344,7 +2343,12 @@
           tutupDialog(); pasangLogo(true);
           toast('Akun @' + user + ' dibuat dengan database baru');
           masuk(D.kasir[0]);
-        };
+        }
+        $('#btnBaOk', f).onclick = simpanAkunBaru;
+        $$('#formBuatAkun input', f).forEach(function (inp) {
+          inp.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); simpanAkunBaru(); } };
+        });
+        setTimeout(function () { $('#baNama', f).focus(); }, 30);
       });
   }
   function dialogGantiAkun() {
@@ -2398,23 +2402,26 @@
     if (!acc) return;
     dialog('<h3>Keamanan Password Akun</h3>' +
       '<p class="redup kecil">Password ini melindungi database <b>' + esc(acc.nama) + ' (@' + esc(acc.username) + ')</b> saat orang lain mencoba berpindah akun.</p>' +
-      '<form id="formSandiAkun" class="form">' +
-      (acc.hash ? '<label>Password lama<input name="lama" type="password" required></label>' : '') +
-      '<label>Password baru (min 4 karakter)<input name="baru" type="password" minlength="4" required></label>' +
-      '<div class="dlg-aksi"><button class="tombol" type="button" value="batal">Batal</button><button class="tombol utama" type="submit">Simpan Password</button></div>' +
-      '</form>', function (f) {
-        $('#formSandiAkun', f).onsubmit = function (e) {
-          e.preventDefault();
-          var fd = e.target;
-          if (acc.hash && hashSandi(fd.lama.value, acc.salt) !== acc.hash) return toast('Password lama salah');
-          var baru = fd.baru.value;
+      '<div id="formSandiAkun" class="form">' +
+      (acc.hash ? '<label>Password lama<input id="saLama" type="password" required></label>' : '') +
+      '<label>Password baru (min 4 karakter)<input id="saBaru" type="password" required></label>' +
+      '</div>' +
+      '<div class="dlg-aksi"><button class="tombol" value="batal">Batal</button><button class="tombol utama" type="button" id="btnSaOk">Simpan Password</button></div>', function (f) {
+        function simpanSandi() {
+          var lama = $('#saLama', f) ? $('#saLama', f).value : '';
+          if (acc.hash && hashSandi(lama, acc.salt) !== acc.hash) return toast('Password lama salah');
+          var baru = $('#saBaru', f).value;
           if (baru.length < 4) return toast('Password minimal 4 karakter');
           acc.salt = Math.random().toString(36).slice(2, 10);
           acc.hash = hashSandi(baru, acc.salt);
           acc.nama = D.toko.nama || acc.nama;
           simpanAkunReg(reg); tutupDialog();
           toast('Password akun diperbarui');
-        };
+        }
+        $('#btnSaOk', f).onclick = simpanSandi;
+        $$('#formSandiAkun input', f).forEach(function (inp) {
+          inp.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); simpanSandi(); } };
+        });
       });
   }
 
